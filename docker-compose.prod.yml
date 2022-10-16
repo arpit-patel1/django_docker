@@ -24,19 +24,23 @@ services:
    nginx:
       build: ./nginx
       volumes:
+         #- ./nginx/nginx.conf:/etc/nginx/conf.d/
          - static_volume:/home/app/web/staticfiles
          - media_volume:/home/app/web/mediafiles
-         #- ./certbot/conf:/etc/letsencrypt
-         #- ./certbot/www:/var/www/certbot
+         - ./certbot/conf:/etc/nginx/ssl/:ro
+         - ./certbot/www:/var/www/certbot/:ro
       ports:
         - 80:80
+        - 443:443
+      command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
       depends_on:
         - web
    certbot:
       image: certbot/certbot
       volumes:
-         - ./certbot/conf:/etc/letsencrypt
-         - ./certbot/www:/var/www/certbot
+         - ./certbot/conf:/etc/letsencrypt/:rw
+         - ./certbot/www:/var/www/certbot/:rw
+      entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 volumes:
    postgres_data:
    static_volume:
